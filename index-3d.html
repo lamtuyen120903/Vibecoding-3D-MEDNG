@@ -1,0 +1,2689 @@
+<!DOCTYPE html>
+<html lang="vi">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MedNG - 3D Experience</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background: #f0f9ff;
+            color: #1e293b;
+            overflow: hidden;
+        }
+
+        /* Loading */
+        #loading {
+            position: fixed;
+            inset: 0;
+            background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 50%, #f0f9ff 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: opacity 0.8s ease;
+        }
+
+        #loading.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #loading img {
+            width: 180px;
+            animation: mascotFloat 2s ease-in-out infinite;
+            filter: drop-shadow(0 20px 40px rgba(14, 165, 233, 0.4));
+        }
+
+        @keyframes mascotFloat {
+
+            0%,
+            100% {
+                transform: translateY(0) rotate(-3deg);
+            }
+
+            50% {
+                transform: translateY(-25px) rotate(3deg);
+            }
+        }
+
+        .loading-text {
+            margin-top: 30px;
+            font-size: 24px;
+            font-weight: 700;
+            background: linear-gradient(90deg, #0ea5e9, #3b82f6, #8b5cf6);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .loading-bar-container {
+            width: 300px;
+            height: 6px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            margin-top: 20px;
+            overflow: hidden;
+        }
+
+        .loading-bar {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #0ea5e9, #3b82f6, #8b5cf6);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+
+        .loading-tip {
+            margin-top: 40px;
+            font-size: 14px;
+            color: rgba(255, 255, 255, 0.5);
+        }
+
+        /* Welcome Modal */
+        #welcome {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.85);
+            backdrop-filter: blur(10px);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            z-index: 500;
+        }
+
+        #welcome.show {
+            display: flex;
+        }
+
+        .welcome-box {
+            background: rgba(255, 255, 255, 0.9);
+            padding: 48px;
+            border-radius: 32px;
+            text-align: center;
+            max-width: 520px;
+            border: 1px solid rgba(14, 165, 233, 0.2);
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.1), 0 0 50px rgba(14, 165, 233, 0.1);
+        }
+
+        .welcome-box img {
+            width: 120px;
+            animation: mascotFloat 2s ease-in-out infinite;
+            filter: drop-shadow(0 15px 30px rgba(14, 165, 233, 0.3));
+        }
+
+        .welcome-box h2 {
+            font-size: 32px;
+            margin: 24px 0 16px;
+            background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .welcome-box p {
+            color: #475569;
+            margin-bottom: 32px;
+            line-height: 1.7;
+            font-size: 16px;
+        }
+
+        .start-btn {
+            background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+            border: none;
+            padding: 18px 48px;
+            border-radius: 30px;
+            font-size: 18px;
+            font-weight: 700;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(14, 165, 233, 0.4);
+        }
+
+        .start-btn:hover {
+            transform: translateY(-3px) scale(1.02);
+            box-shadow: 0 15px 40px rgba(14, 165, 233, 0.5);
+        }
+
+        /* 3D Container */
+        #scene {
+            width: 100vw;
+            height: 100vh;
+        }
+
+        /* UI */
+        #ui {
+            position: fixed;
+            inset: 0;
+            pointer-events: none;
+            z-index: 100;
+        }
+
+        .header {
+            position: absolute;
+            top: 24px;
+            left: 24px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            padding: 12px 20px;
+            border-radius: 16px;
+            border: 1px solid rgba(14, 165, 233, 0.2);
+        }
+
+        .header .logo {
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+        }
+
+        .header h1 {
+            font-size: 18px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        .controls {
+            position: absolute;
+            bottom: 24px;
+            left: 24px;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            padding: 20px 28px;
+            border-radius: 20px;
+            pointer-events: auto;
+            border: 1px solid rgba(14, 165, 233, 0.2);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .controls h4 {
+            color: #0ea5e9;
+            margin-bottom: 16px;
+            font-size: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .controls .row {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+            font-size: 13px;
+            color: #334155;
+        }
+
+        .key {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(14, 165, 233, 0.2);
+            border: 1px solid rgba(14, 165, 233, 0.4);
+            padding: 6px 12px;
+            border-radius: 8px;
+            margin-right: 10px;
+            min-width: 36px;
+            font-weight: 600;
+            color: #0ea5e9;
+        }
+
+        /* Minimap */
+        .minimap {
+            position: absolute;
+            bottom: 24px;
+            right: 24px;
+            width: 180px;
+            height: 220px;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            border-radius: 20px;
+            padding: 16px;
+            border: 1px solid rgba(14, 165, 233, 0.2);
+            pointer-events: auto;
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        }
+
+        .mute-btn {
+            background: rgba(14, 165, 233, 0.1);
+            border: 1px solid rgba(14, 165, 233, 0.2);
+            color: #334155;
+            padding: 8px 12px;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 16px;
+            pointer-events: auto;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .mute-btn:hover {
+            background: rgba(255, 255, 255, 0.2);
+            transform: scale(1.05);
+        }
+
+        .mute-btn.muted {
+            color: #ef4444;
+            border-color: rgba(239, 68, 68, 0.4);
+        }
+
+        .minimap h5 {
+            font-size: 11px;
+            color: #0ea5e9;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+
+        .minimap-canvas {
+            width: 100%;
+            height: calc(100% - 28px);
+            background: rgba(241, 245, 249, 0.8);
+            border-radius: 12px;
+            position: relative;
+        }
+
+        .minimap-player {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #0ea5e9;
+            border-radius: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 0 15px #0ea5e9, 0 0 30px #0ea5e9;
+            transition: all 0.1s ease;
+        }
+
+        .minimap-room {
+            position: absolute;
+            width: 20px;
+            height: 12px;
+            border-radius: 3px;
+            transform: translate(-50%, -50%);
+            opacity: 0.6;
+        }
+
+        /* Room Info - Fullscreen Refactor */
+        #room-panel {
+            position: fixed;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(241, 245, 249, 0.85);
+            backdrop-filter: blur(20px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            z-index: 1000;
+            pointer-events: auto;
+        }
+
+        #room-panel.show {
+            opacity: 1;
+            visibility: visible;
+        }
+
+        /* Holographic Monitor Effect */
+        .room-content {
+            background: rgba(0, 10, 20, 0.9);
+            width: 90%;
+            max-width: 800px;
+            padding: 60px;
+            border-radius: 20px;
+            border: 2px solid #0ea5e9;
+            box-shadow: 0 0 40px rgba(14, 165, 233, 0.3), inset 0 0 30px rgba(14, 165, 233, 0.1);
+            position: relative;
+            transform: scale(0.95);
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            text-align: left;
+            /* Changed to left for tech look */
+            overflow: hidden;
+            font-family: 'Courier New', monospace;
+            /* Tech font */
+        }
+
+        /* Scanlines */
+        .room-content::before {
+            content: '';
+            position: absolute;
+            inset: 0;
+            background: repeating-linear-gradient(0deg,
+                    rgba(0, 0, 0, 0) 0px,
+                    rgba(0, 0, 0, 0) 1px,
+                    rgba(14, 165, 233, 0.05) 2px,
+                    rgba(14, 165, 233, 0.05) 3px);
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        /* Moving Scanline Bar */
+        .room-content::after {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(0deg, transparent 0%, rgba(14, 165, 233, 0.1) 50%, transparent 100%);
+            background-size: 100% 20px;
+            animation: scanline 4s linear infinite;
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        @keyframes scanline {
+            0% {
+                transform: translateY(-100%);
+            }
+
+            100% {
+                transform: translateY(100%);
+            }
+        }
+
+        #room-panel.show .room-content {
+            transform: scale(1);
+        }
+
+        /* Header Layout */
+        .panel-header {
+            display: flex;
+            align-items: center;
+            gap: 24px;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 1px solid rgba(14, 165, 233, 0.3);
+            position: relative;
+            z-index: 10;
+        }
+
+        #room-panel .icon svg {
+            width: 80px;
+            height: 80px;
+            fill: #0ea5e9;
+            filter: drop-shadow(0 0 10px rgba(14, 165, 233, 0.5));
+            animation: pulseIcon 2s infinite alternate;
+        }
+
+        @keyframes pulseIcon {
+            from {
+                filter: drop-shadow(0 0 10px rgba(14, 165, 233, 0.5));
+                transform: scale(1);
+            }
+
+            to {
+                filter: drop-shadow(0 0 20px rgba(14, 165, 233, 0.8));
+                transform: scale(1.05);
+            }
+        }
+
+        #room-panel h3 {
+            font-size: 32px;
+            font-weight: 700;
+            color: #0ea5e9;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+            margin: 0;
+            text-shadow: 0 0 10px rgba(14, 165, 233, 0.5);
+        }
+
+        .panel-meta {
+            font-size: 14px;
+            color: #10b981;
+            margin-top: 4px;
+        }
+
+        #room-panel p {
+            color: #94a3b8;
+            margin-bottom: 30px;
+            line-height: 1.6;
+            font-size: 16px;
+            max-width: 100%;
+            position: relative;
+            z-index: 10;
+        }
+
+        /* ECG Animation */
+        .ecg-container {
+            position: absolute;
+            top: 40px;
+            right: 40px;
+            width: 200px;
+            height: 60px;
+            opacity: 0.3;
+        }
+
+        .ecg-line {
+            fill: none;
+            stroke: #10b981;
+            stroke-width: 2;
+            stroke-dasharray: 500;
+            stroke-dashoffset: 500;
+            animation: ecgDraw 2s linear infinite;
+        }
+
+        @keyframes ecgDraw {
+            0% {
+                stroke-dashoffset: 500;
+            }
+
+            100% {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        /* Data Grid */
+        #room-panel ul {
+            list-style: none;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+            position: relative;
+            z-index: 10;
+        }
+
+        #room-panel li {
+            padding: 12px 16px;
+            background: rgba(14, 165, 233, 0.05);
+            border-left: 3px solid #0ea5e9;
+            border-radius: 4px;
+            /* Squared off */
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 14px;
+            color: #e2e8f0;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        #room-panel li:hover {
+            background: rgba(14, 165, 233, 0.15);
+            transform: translateX(4px);
+            box-shadow: 0 0 15px rgba(14, 165, 233, 0.2);
+        }
+
+        #room-panel li::before {
+            content: '';
+            /* We replace the checkmark with a small blip or use an SVG icon inline if needed */
+            display: none;
+        }
+
+        /* Replacing the checkmark with a tech symbol */
+        .li-icon {
+            color: #0ea5e9;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .close-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: transparent;
+            border: 2px solid #ef4444;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            color: #ef4444;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 20;
+        }
+
+        .close-btn:hover {
+            background: #ef4444;
+            color: white;
+            box-shadow: 0 0 20px #ef4444;
+            transform: rotate(90deg);
+        }
+
+        /* Prompt */
+        #prompt {
+            position: absolute;
+            bottom: 140px;
+            left: 50%;
+            transform: translateX(-50%) scale(0.9);
+            background: linear-gradient(135deg, #0ea5e9, #3b82f6);
+            padding: 14px 32px;
+            border-radius: 30px;
+            font-size: 15px;
+            font-weight: 600;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(14, 165, 233, 0.4);
+        }
+
+        #prompt.show {
+            opacity: 1;
+            visibility: visible;
+            transform: translateX(-50%) scale(1);
+            animation: promptPulse 2s ease-in-out infinite;
+        }
+
+        @keyframes promptPulse {
+
+            0%,
+            100% {
+                box-shadow: 0 10px 30px rgba(14, 165, 233, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 15px 40px rgba(14, 165, 233, 0.6);
+            }
+        }
+
+        /* Character Status */
+        .char-status {
+            position: absolute;
+            top: 24px;
+            right: 24px;
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(10px);
+            padding: 12px 20px;
+            border-radius: 16px;
+            border: 1px solid rgba(14, 165, 233, 0.2);
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .char-status img {
+            width: 40px;
+            border-radius: 50%;
+        }
+
+        .char-status .info h5 {
+            font-size: 14px;
+        }
+
+        .char-status .info span {
+            font-size: 11px;
+            color: #10b981;
+        }
+
+        #fade-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: white;
+            opacity: 0;
+            pointer-events: none;
+            z-index: 1000;
+            transition: opacity 2s ease-in;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="fade-overlay"></div>
+    <!-- Loading -->
+    <div id="loading">
+        <img src="mascot.png" alt="Dr. Dino">
+        <p class="loading-text">Đang tải thế giới 3D...</p>
+        <div class="loading-bar-container">
+            <div class="loading-bar" id="loadBar"></div>
+        </div>
+        <p class="loading-tip">💡 Dùng WASD hoặc phím mũi tên để di chuyển</p>
+    </div>
+
+    <!-- Welcome -->
+    <div id="welcome">
+        <div class="welcome-box">
+            <img src="mascot.png" alt="Dr. Dino">
+            <h2>Chào mừng đến MedNG!</h2>
+            <p>Tôi là Dr. Dino! 🦕 Điều khiển tôi đi khám phá hành lang y tế và tìm hiểu các tính năng bảo mật tuyệt vời
+                của MedNG nhé!</p>
+            <button class="start-btn" onclick="startGame()">Bắt Đầu Khám Phá 🚀</button>
+        </div>
+    </div>
+
+    <!-- 3D Scene -->
+    <div id="scene"></div>
+
+    <!-- UI -->
+    <div id="ui">
+        <div class="header">
+            <div class="logo">🏥</div>
+            <h1> MedNG</h1>
+            <button class="mute-btn" id="muteBtn" onclick="toggleAudio()">🔊</button>
+        </div>
+
+        <div class="char-status">
+            <img src="mascot.png" alt="Dr. Dino">
+            <div class="info">
+                <h5>Dr. Dino</h5>
+                <span>● Đang khám phá</span>
+            </div>
+        </div>
+
+        <div class="controls">
+            <h4>🎮 Điều khiển</h4>
+            <div class="row"><span class="key">W</span> Di chuyển tiến</div>
+            <div class="row"><span class="key">S</span> Di chuyển lùi</div>
+            <div class="row"><span class="key">A</span> Sang trái</div>
+            <div class="row"><span class="key">D</span> Sang phải</div>
+            <div class="row"><span class="key">E</span> Tương tác phòng</div>
+        </div>
+
+        <div class="minimap">
+            <h5>🗺️ Bản đồ</h5>
+            <div class="minimap-canvas" id="minimapCanvas">
+                <div class="minimap-player" id="minimapPlayer"></div>
+            </div>
+        </div>
+
+        <div id="room-panel">
+            <div class="room-content">
+                <button class="close-btn" onclick="closePanel()">✕</button>
+
+                <div class="ecg-container">
+                    <svg viewBox="0 0 200 60">
+                        <path class="ecg-line"
+                            d="M0,30 L20,30 L25,10 L30,50 L35,30 L45,30 L50,10 L55,50 L60,30 L200,30"></path>
+                    </svg>
+                </div>
+
+                <div class="panel-header">
+                    <div class="icon" id="r-icon"></div>
+                    <div>
+                        <h3 id="r-title">Tên phòng</h3>
+                        <div class="panel-meta">SECURE CONNECTION ESTABLISHED</div>
+                    </div>
+                </div>
+
+                <p id="r-desc">Mô tả</p>
+
+                <ul id="r-list"></ul>
+            </div>
+        </div>
+
+        <div id="prompt">Nhấn <strong>E</strong> để vào phòng</div>
+    </div>
+
+    <script type="importmap">
+    {
+        "imports": {
+            "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+            "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+        }
+    }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+
+        // Room Data
+        const ROOMS = [
+            { id: 'ownership', icon: 'dna', title: 'Quyền Sở Hữu Dữ Liệu', desc: 'Bệnh nhân hoàn toàn sở hữu và kiểm soát hồ sơ y tế của mình. Không có tổ chức nào có thể truy cập mà không có sự cho phép của bạn.', features: ['100% quyền cấp phép truy cập', 'Không điểm kiểm soát tập trung', 'Self-custody hoàn toàn', 'Tự quyết định ai được xem'], color: 0x0ea5e9, x: -11.5, z: -20 },
+            { id: 'encryption', icon: 'shield', title: 'Mã Hóa Threshold', desc: 'Công nghệ Seal với cơ chế M-of-N đảm bảo không có điểm lỗi đơn lẻ. Dữ liệu được bảo vệ bởi nhiều bên.', features: ['Mã hóa M-of-N Threshold', 'Không có single point of failure', 'Khôi phục khóa an toàn', 'AES-256-GCM encryption'], color: 0x10b981, x: 11.5, z: -20 },
+            { id: 'blockchain', icon: 'chain', title: 'Sui Blockchain', desc: 'Lưu trữ metadata và audit trail bất biến trên blockchain Sui. Giao dịch nhanh chóng với chi phí thấp.', features: ['Immutable audit trail', 'Giao dịch dưới 1 giây', 'Chi phí gas thấp', 'Smart contract bảo mật'], color: 0x8b5cf6, x: -11.5, z: -45 },
+            { id: 'storage', icon: 'server', title: 'Walrus Storage', desc: 'Lưu trữ phi tập trung với dữ liệu được mã hóa trước khi lưu. Không ai có thể đọc dữ liệu mà không có khóa.', features: ['Lưu trữ phi tập trung', 'Mã hóa trước khi upload', 'Truy xuất qua Content ID', 'Không phụ thuộc 1 provider'], color: 0xf59e0b, x: 11.5, z: -45 },
+            { id: 'tee', icon: 'chip', title: 'TEE Oyster CVM', desc: 'Xử lý dữ liệu nhạy cảm trong AWS Nitro Enclave với xác thực PCR. Môi trường cách ly hoàn toàn.', features: ['AWS Nitro Enclave', 'PCR Verification', 'Môi trường cách ly', 'Xác thực phần cứng'], color: 0xec4899, x: -11.5, z: -70 },
+            { id: 'compliance', icon: 'doc', title: 'HIPAA & GDPR', desc: 'Đáp ứng đầy đủ các tiêu chuẩn bảo mật dữ liệu y tế quốc tế HIPAA và GDPR.', features: ['HIPAA Technical Safeguards', 'GDPR Data Portability', 'Quyền xóa dữ liệu', 'Audit trail đầy đủ'], color: 0x06b6d4, x: 11.5, z: -70 }
+        ];
+
+        const ICONS = {
+            dna: '<svg viewBox="0 0 24 24"><path d="M12 2C12 2 12.5 3 13 4C13.5 5 14 6 14.5 7C15 8 16 8 17 8C18 8 19 9 20 10C21 11 22 13 22 13C22 13 20 13 18 13C16 13 15 14 14.5 15C14 16 13.5 17 13 18C12.5 19 12 20 12 20C12 20 11.5 19 11 18C10.5 17 10 16 9.5 15C9 14 8 13 6 13C4 13 2 13 2 13C2 13 3 11 4 10C5 9 6 8 7 8C8 8 9 8 9.5 7C10 6 10.5 5 11 4C11.5 3 12 2 12 2ZM7 16C7 16 8 16 9 17C10 18 11 19 12 22C13 19 14 18 15 17C16 16 17 16 17 16" stroke="currentColor" fill="none" stroke-width="2"/></svg>',
+            shield: '<svg viewBox="0 0 24 24"><path d="M12 22S4 18 4 12V6L12 3L20 6V12C20 18 12 22 12 22Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 8V16" stroke="currentColor" stroke-width="2"/><path d="M8 12H16" stroke="currentColor" stroke-width="2"/></svg>',
+            chain: '<svg viewBox="0 0 24 24"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71" fill="none" stroke="currentColor" stroke-width="2"/></svg>',
+            server: '<svg viewBox="0 0 24 24"><rect x="2" y="2" width="20" height="8" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="2"/><rect x="2" y="14" width="20" height="8" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="2"/><line x1="6" y1="6" x2="6.01" y2="6" stroke="currentColor" stroke-width="2"/><line x1="6" y1="18" x2="6.01" y2="18" stroke="currentColor" stroke-width="2"/></svg>',
+            chip: '<svg viewBox="0 0 24 24"><rect x="4" y="4" width="16" height="16" rx="2" ry="2" fill="none" stroke="currentColor" stroke-width="2"/><path d="M9 9H15V15H9V9Z" fill="currentColor"/><line x1="9" y1="9" x2="4" y2="9" stroke="currentColor" stroke-width="2"/><line x1="20" y1="9" x2="15" y2="9" stroke="currentColor" stroke-width="2"/><line x1="9" y1="15" x2="4" y2="15" stroke="currentColor" stroke-width="2"/><line x1="20" y1="15" x2="15" y2="15" stroke="currentColor" stroke-width="2"/><line x1="9" y1="4" x2="9" y2="9" stroke="currentColor" stroke-width="2"/><line x1="15" y1="4" x2="15" y2="9" stroke="currentColor" stroke-width="2"/><line x1="9" y1="20" x2="9" y2="15" stroke="currentColor" stroke-width="2"/><line x1="15" y1="20" x2="15" y2="15" stroke="currentColor" stroke-width="2"/></svg>',
+            doc: '<svg viewBox="0 0 24 24"><path d="M14 2H6C5 2 4 3 4 4V20C4 21 5 22 6 22H18C19 22 20 21 20 20V8L14 2Z" fill="none" stroke="currentColor" stroke-width="2"/><path d="M14 2V8H20" stroke="currentColor" stroke-width="2"/><line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="2"/><line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="2"/><line x1="10" y1="9" x2="8" y2="9" stroke="currentColor" stroke-width="2"/></svg>',
+            default: '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" fill="none" stroke="currentColor" stroke-width="2"/></svg>'
+        };
+
+        let scene, camera, renderer;
+        let mascot, mascotParts = {};
+        let pos = { x: 0, z: 8 };
+        let targetRotation = 0;
+        let keys = {};
+        let nearRoom = null;
+        let walkTime = 0;
+        let isWalking = false;
+
+        // Mascot Animation Timers
+        let blinkTimer = 0;
+        let blinkInterval = 4;
+        let isBlinking = false;
+        let blinkPhase = 0;
+        let breathTimer = 0;
+        let earTwitchTimer = 0;
+        let earTwitchAngle = 0;
+        let contactShadow = null;
+
+        // Interaction State
+        let interactionTimer = 0;
+        const INTERACTION_DURATION = 1.0;
+        let activeRoomId = null; // Prevent re-triggering while open
+
+        // Ending Sequence State
+        let endingTriggered = false;
+        let endingTimer = 0;
+        let portalSwirl = null;
+        let portalGodRay = null;
+        let portalLight = null;
+
+        // Drones
+        let drones = []; // Store drone objects { mesh, update }
+
+        // Scanner Effect
+        let scannerGroup = null;
+        let scannerMesh = null;
+        let scannerTextSprite = null;
+        let scannerCanvas = null;
+        let scannerCtx = null;
+        let scannerTexture = null;
+        let lastScanPercent = -1;
+
+        // Echo Ripple System
+        let ripples = []; // { mesh, age, maxAge }
+        let wallMeshes = [];
+        let wallPulseIntensity = 0;
+        let circuitTexture = null;
+
+        // Sound System
+        class AudioManager {
+            constructor() {
+                this.ctx = null;
+                this.masterGain = null;
+                this.isMuted = false;
+                this.ambientOsc = null;
+                this.lastFootstep = 0;
+
+                // Scan Sound
+                this.scanOsc = null;
+                this.scanGain = null;
+            }
+
+            init() {
+                if (this.ctx) return;
+                this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+                this.masterGain = this.ctx.createGain();
+                this.masterGain.connect(this.ctx.destination);
+                this.masterGain.gain.value = 0.3;
+            }
+
+
+            playFootstep() {
+                if (!this.ctx || this.isMuted || Date.now() - this.lastFootstep < 400) return;
+                this.lastFootstep = Date.now();
+
+                const osc = this.ctx.createOscillator();
+                const gain = this.ctx.createGain();
+
+                osc.type = 'triangle';
+                // Randomized pitch for organic feel
+                const baseFreq = 120 + Math.random() * 40;
+                osc.frequency.setValueAtTime(baseFreq, this.ctx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(20, this.ctx.currentTime + 0.15);
+
+                gain.gain.setValueAtTime(0.1, this.ctx.currentTime); // Slightly louder
+                gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.15);
+
+                osc.connect(gain);
+                gain.connect(this.masterGain);
+
+                osc.start();
+                osc.stop(this.ctx.currentTime + 0.15);
+
+                // Secondary "Click" for tile contact (Higher freq, very short)
+                const osc2 = this.ctx.createOscillator();
+                const gain2 = this.ctx.createGain();
+                osc2.type = 'sine';
+                osc2.frequency.setValueAtTime(800, this.ctx.currentTime);
+                osc2.frequency.exponentialRampToValueAtTime(100, this.ctx.currentTime + 0.05);
+                gain2.gain.setValueAtTime(0.02, this.ctx.currentTime);
+                gain2.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.05);
+                osc2.connect(gain2);
+                gain2.connect(this.masterGain);
+                osc2.start();
+                osc2.stop(this.ctx.currentTime + 0.05);
+
+                // Trigger Visual Ripple
+                if (typeof createRipple === 'function' && mascot) {
+                    createRipple(mascot.position);
+                }
+            }
+
+            playUI(type) {
+                if (!this.ctx || this.isMuted) return;
+
+                const playNote = (freq, startTime, duration) => {
+                    const osc = this.ctx.createOscillator();
+                    const gain = this.ctx.createGain();
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(freq, startTime);
+                    gain.gain.setValueAtTime(0, startTime);
+                    gain.gain.linearRampToValueAtTime(0.08, startTime + 0.05);
+                    gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
+                    osc.connect(gain);
+                    gain.connect(this.masterGain);
+                    osc.start(startTime);
+                    osc.stop(startTime + duration);
+                };
+
+                const now = this.ctx.currentTime;
+                if (type === 'enter') {
+                    // Ascending major arpeggio (C4, E4, G4, C5)
+                    playNote(261.63, now, 0.4);
+                    playNote(329.63, now + 0.1, 0.4);
+                    playNote(392.00, now + 0.2, 0.4);
+                    playNote(523.25, now + 0.3, 0.6);
+                } else {
+                    // Descending gentle cadence (C5, G4, E4)
+                    playNote(523.25, now, 0.4);
+                    playNote(392.00, now + 0.1, 0.4);
+                    playNote(329.63, now + 0.2, 0.6);
+                }
+            }
+
+            toggleMute() {
+                this.isMuted = !this.isMuted;
+                if (this.masterGain) {
+                    this.masterGain.gain.setTargetAtTime(this.isMuted ? 0 : 0.3, this.ctx.currentTime, 0.05);
+                }
+                const btn = document.getElementById('muteBtn');
+                btn.textContent = this.isMuted ? '🔇' : '🔊';
+                btn.classList.toggle('muted', this.isMuted);
+
+                // Stop any scan sound if muting
+                if (this.isMuted) this.stopScanSound();
+            }
+
+            startScanSound() {
+                if (!this.ctx || this.isMuted || this.scanOsc) return;
+
+                this.scanOsc = this.ctx.createOscillator();
+                this.scanGain = this.ctx.createGain();
+
+                // High tech hum
+                this.scanOsc.type = 'sawtooth';
+                this.scanOsc.frequency.setValueAtTime(200, this.ctx.currentTime);
+                this.scanOsc.frequency.linearRampToValueAtTime(800, this.ctx.currentTime + 1.0); // Pitch up faster
+
+                // LFO for "wobble"
+                const lfo = this.ctx.createOscillator();
+                lfo.type = 'sine';
+                lfo.frequency.value = 15;
+                const lfoGain = this.ctx.createGain();
+                lfoGain.gain.value = 50;
+                lfo.connect(lfoGain);
+                lfoGain.connect(this.scanOsc.frequency);
+                lfo.start();
+
+                this.scanGain.gain.setValueAtTime(0, this.ctx.currentTime);
+                this.scanGain.gain.linearRampToValueAtTime(0.05, this.ctx.currentTime + 0.1);
+
+                this.scanOsc.connect(this.scanGain);
+                this.scanGain.connect(this.masterGain);
+                this.scanOsc.start();
+
+                // Store LFO cleanup if needed, but for simplicity we rely on stop
+                this.scanOsc.lfo = lfo;
+            }
+
+            stopScanSound() {
+                if (!this.scanOsc) return;
+
+                try {
+                    this.scanGain.gain.setTargetAtTime(0, this.ctx.currentTime, 0.1);
+                    this.scanOsc.stop(this.ctx.currentTime + 0.2);
+                    if (this.scanOsc.lfo) this.scanOsc.lfo.stop(this.ctx.currentTime + 0.2);
+                } catch (e) { }
+
+                this.scanOsc = null;
+                this.scanGain = null;
+            }
+        }
+
+        const audio = new AudioManager();
+        window.toggleAudio = () => audio.toggleMute();
+
+        // Camera Animation State
+        let isAnimatingCamera = false;
+        let cameraTarget = new THREE.Vector3();
+        let cameraLookAtTarget = new THREE.Vector3();
+        let smoothedLookAt = new THREE.Vector3(0, 3, -10); // Current lookAt for smoothing
+        let initialCameraOffset = new THREE.Vector3(0, 3, 14); // Further back
+        let currentRoomData = null;
+        let doorAnimationState = 0; // 0 for closed, 1 for open
+        let doors = new Map(); // Store door mesh references
+        let stationIcons = new Map(); // Store 3D icons for animation
+
+        // Initialize
+        function init() {
+            // Scene
+            scene = new THREE.Scene();
+            scene.background = new THREE.Color(0xf0f9ff);
+            scene.fog = new THREE.FogExp2(0xf0f9ff, 0.015);
+
+            // Camera
+            camera = new THREE.PerspectiveCamera(70, innerWidth / innerHeight, 0.1, 500);
+            camera.position.set(0, 4.5, 6);
+
+            // Renderer
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(innerWidth, innerHeight);
+            renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.toneMapping = THREE.ACESFilmicToneMapping;
+            renderer.toneMappingExposure = 1.2;
+            document.getElementById('scene').appendChild(renderer.domElement);
+
+            // Lights
+            const ambient = new THREE.AmbientLight(0xffffff, 0.7);
+            scene.add(ambient);
+
+            const mainLight = new THREE.DirectionalLight(0xffffff, 0.5);
+            mainLight.position.set(15, 30, 10);
+            mainLight.castShadow = true;
+            mainLight.shadow.mapSize.width = 2048;
+            mainLight.shadow.mapSize.height = 2048;
+            mainLight.shadow.camera.near = 0.5;
+            mainLight.shadow.camera.far = 100;
+            mainLight.shadow.camera.left = -30;
+            mainLight.shadow.camera.right = 30;
+            mainLight.shadow.camera.top = 30;
+            mainLight.shadow.camera.bottom = -30;
+            scene.add(mainLight);
+
+            // Corridor lights (LED Panels)
+            const panelGeo = new THREE.BoxGeometry(4, 0.2, 8);
+            const panelMat = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                emissive: 0xffffff,
+                emissiveIntensity: 1.0,
+                toneMapped: false
+            });
+
+            for (let z = 0; z >= -90; z -= 20) {
+                // Light source 1 (Cool White)
+                const light = new THREE.PointLight(0xf0f9ff, 0.6, 25);
+                light.position.set(0, 6, z);
+                scene.add(light);
+
+                // LED Panel Mesh
+                const panel = new THREE.Mesh(panelGeo, panelMat);
+                panel.position.set(0, 7.9, z);
+                scene.add(panel);
+            }
+
+            // Ceiling Pipes (Utility)
+            const pipeMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, roughness: 0.4, metalness: 0.6 });
+            const pipeLong = new THREE.CylinderGeometry(0.3, 0.3, 110, 8);
+            pipeLong.rotateX(Math.PI / 2);
+
+            // Left pipes
+            const p1 = new THREE.Mesh(pipeLong, pipeMat);
+            p1.position.set(-5, 7.5, -45);
+            scene.add(p1);
+            const p2 = new THREE.Mesh(pipeLong, pipeMat);
+            p2.position.set(-5.8, 7.7, -45);
+            scene.add(p2);
+
+            // Right pipes
+            const p3 = new THREE.Mesh(pipeLong, pipeMat);
+            p3.position.set(5, 7.5, -45);
+            scene.add(p3);
+
+            // Overhead Signage
+            createSignage("DATA SECURITY WING", 0, 6.5, -5, 0);
+            createSignage("BIO-LABS", 0, 6.5, -45, 0);
+            createSignage("RESTRICTED AREA", 0, 6.5, -85, 0);
+
+            createEnvironment();
+            createMascot();
+            setupMinimap();
+            setupControls();
+
+            animate();
+
+            // Loading simulation
+            let progress = 0;
+            const loadBar = document.getElementById('loadBar');
+            const loadInterval = setInterval(() => {
+                progress += Math.random() * 12 + 3;
+                if (progress >= 100) {
+                    progress = 100;
+                    clearInterval(loadInterval);
+                    setTimeout(() => {
+                        document.getElementById('loading').classList.add('hidden');
+                        document.getElementById('welcome').classList.add('show');
+                    }, 500);
+                }
+                loadBar.style.width = progress + '%';
+            }, 100);
+        }
+
+        function createEnvironment() {
+            // Floor
+            const floorGeo = new THREE.PlaneGeometry(26, 120);
+            const floorMat = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                roughness: 0.05,
+                metalness: 0.1
+            });
+            const floor = new THREE.Mesh(floorGeo, floorMat);
+            floor.rotation.x = -Math.PI / 2;
+            floor.position.z = -40;
+            floor.receiveShadow = true;
+            scene.add(floor);
+
+            // Floor glow lines -> Grout lines
+            for (let x = -9; x <= 9; x += 4.5) {
+                const line = new THREE.Mesh(
+                    new THREE.PlaneGeometry(0.05, 120),
+                    new THREE.MeshBasicMaterial({ color: 0xcbd5e1, transparent: true, opacity: 0.6 })
+                );
+                line.rotation.x = -Math.PI / 2;
+                line.position.set(x, 0.01, -40);
+                scene.add(line);
+            }
+
+            // Walls
+            circuitTexture = createCircuitTexture();
+            const wallMat = new THREE.MeshStandardMaterial({
+                color: 0xf8fafc,
+                roughness: 0.3,
+                metalness: 0.1,
+                emissive: 0x0ea5e9,
+                emissiveMap: circuitTexture,
+                emissiveIntensity: 0.0 // Start off
+            });
+
+            // Left wall
+            const leftWall = new THREE.Mesh(new THREE.BoxGeometry(0.5, 8, 120), wallMat);
+            leftWall.position.set(-12, 4, -40);
+            leftWall.receiveShadow = true;
+            scene.add(leftWall);
+            wallMeshes.push(leftWall);
+
+            // Right wall
+            const rightWall = leftWall.clone();
+            rightWall.position.x = 12;
+            scene.add(rightWall);
+            wallMeshes.push(rightWall);
+
+            // Ceiling
+            const ceiling = new THREE.Mesh(
+                new THREE.PlaneGeometry(26, 120),
+                new THREE.MeshStandardMaterial({ color: 0xf1f5f9, roughness: 0.9 })
+            );
+            ceiling.rotation.x = Math.PI / 2;
+            ceiling.position.set(0, 7, -40);
+            scene.add(ceiling);
+
+            // End wall
+            const endWall = new THREE.Mesh(new THREE.BoxGeometry(26, 8, 0.5), wallMat);
+            endWall.position.set(0, 4, -100);
+            scene.add(endWall);
+            // Create rooms
+            ROOMS.forEach(r => createBioStation(r));
+
+            // Create Portal
+            createPortal();
+
+            // Generate Drones
+            createDrone(-4, -20, 20);
+            createDrone(4, -55, 25);
+            createDrone(0, -80, 15);
+        }
+
+        function createBioStation(data) {
+            const group = new THREE.Group();
+            const isLeft = data.x < 0; // x is ~ +/- 11.5
+
+            // Position entire group at wall location
+            // We'll center the group at (data.x, 4.5, data.z)
+            group.position.set(data.x, 4.5, data.z);
+            // Rotate to face hallway center. 
+            // If left wall (-x), face +x (Rotation 0 is usually facing +z or -z depending on model, let's verify).
+            // Actually, based on previous code: enclosure.position was set directly.
+            // Let's rotate the GROUP so local coordinates are easier.
+            // Left wall (x < 0): needs to face +X.
+            // Right wall (x > 0): needs to face -X.
+
+            // Standard orientation: Facing +Z. 
+            // Rotation Y: Left -> Math.PI/2, Right -> -Math.PI/2.
+            group.rotation.y = isLeft ? Math.PI / 2 : -Math.PI / 2;
+
+            // --- 1. Door Frame (Matte Metal) ---
+            const frameMat = new THREE.MeshStandardMaterial({
+                color: 0xe2e8f0, // Silver/White metal
+                roughness: 0.3,  // Smooth matte
+                metalness: 0.7,  // Aluminum/Steel
+            });
+
+            // Outer Frame (U-shape)
+            // Dimensions: 4m wide, 5m high, 0.4m thick
+            // Posts
+            const postGeo = new THREE.BoxGeometry(0.4, 5, 0.4);
+            const leftPost = new THREE.Mesh(postGeo, frameMat);
+            leftPost.position.set(-1.8, 0, 0); // Local coordinates
+            leftPost.castShadow = true;
+            group.add(leftPost);
+
+            const rightPost = leftPost.clone();
+            rightPost.position.set(1.8, 0, 0);
+            group.add(rightPost);
+
+            // Header
+            const headerGeo = new THREE.BoxGeometry(4, 0.4, 0.5); // Slightly thicker header
+            const header = new THREE.Mesh(headerGeo, frameMat);
+            header.position.set(0, 2.3, 0.05); // Top
+            header.castShadow = true;
+            group.add(header);
+
+            // Threshold (Floor strip)
+            const thresholdGeo = new THREE.BoxGeometry(3.6, 0.1, 0.4);
+            const thresholdMat = new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.8 });
+            const threshold = new THREE.Mesh(thresholdGeo, thresholdMat);
+            threshold.position.set(0, -2.45, 0);
+            group.add(threshold);
+
+            // --- 2. Smart Glass Panel (Frosted) ---
+            const glassMat = new THREE.MeshPhysicalMaterial({
+                color: 0xffffff,
+                metalness: 0.1,
+                roughness: 0.3, // Frosted blur
+                transmission: 0.7, // Translucent
+                thickness: 1.0,  // Physical thickness for refraction
+                ior: 1.5,
+                clearcoat: 0.8,
+                clearcoatRoughness: 0.1,
+                transparent: true
+            });
+            const glass = new THREE.Mesh(new THREE.BoxGeometry(3.2, 4.6, 0.1), glassMat);
+            glass.position.set(0, 0, 0); // Centered in frame
+            group.add(glass);
+
+            // Store for door animation
+            doors.set(data.id, glass);
+
+            // --- 3. Access Panel (Biometric Scanner) ---
+            // Mounted on the right post (or left depending on side, but right is standard)
+            const panelGroup = new THREE.Group();
+            panelGroup.position.set(1.8, 0, 0.25); // On Right Post, sticking out slightly
+
+            const scannerBox = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.5, 0.1), new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.8 }));
+            panelGroup.add(scannerBox);
+
+            // Screen/Reader
+            const screenGeo = new THREE.PlaneGeometry(0.2, 0.3);
+            const screenMat = new THREE.MeshBasicMaterial({ color: 0x0ea5e9 }); // Blue standby
+            const screen = new THREE.Mesh(screenGeo, screenMat);
+            screen.position.set(0, 0.05, 0.055);
+            panelGroup.add(screen);
+
+            // Light Indicator (Point light for glow)
+            const indicatorLight = new THREE.PointLight(0x0ea5e9, 0.5, 2);
+            indicatorLight.position.set(0, 0, 0.1);
+            panelGroup.add(indicatorLight);
+
+            group.add(panelGroup);
+
+            // --- 4. Holographic Icon ---
+            // Floating in front of glass
+            const iconGroup = new THREE.Group();
+            // Local Z + 0.3 (in front of glass)
+            iconGroup.position.set(0, 0, 0.3);
+
+            // Create the icon geometry
+            createStationIcon(iconGroup, data.id, data.color);
+
+            // Scale down slightly to fit door
+            iconGroup.scale.set(0.8, 0.8, 0.8);
+
+            group.add(iconGroup);
+            stationIcons.set(data.id, iconGroup);
+
+            // --- 5. Inner Chamber Gloom / Light ---
+            // Since we can see through glass, add a light BEHIND the door
+            const chamberLight = new THREE.PointLight(data.color, 1.0, 10);
+            chamberLight.position.set(0, 1, -2); // Behind door
+            group.add(chamberLight);
+
+            // --- 6. Digital Display Label (Above Header) ---
+            // Floating slightly off wall
+            const labelCanvas = document.createElement('canvas');
+            labelCanvas.width = 512;
+            labelCanvas.height = 128;
+            const lCtx = labelCanvas.getContext('2d');
+            lCtx.fillStyle = 'rgba(15, 23, 42, 0.8)'; // Semi-transparent dark bg
+            lCtx.fillRect(0, 0, 512, 128);
+            lCtx.strokeStyle = '#' + data.color.toString(16).padStart(6, '0');
+            lCtx.lineWidth = 4;
+            lCtx.strokeRect(4, 4, 504, 120);
+            lCtx.fillStyle = '#ffffff';
+            lCtx.font = 'bold 50px Inter';
+            lCtx.textAlign = 'center';
+            lCtx.textBaseline = 'middle';
+            lCtx.fillText(data.title.toUpperCase(), 256, 64);
+
+            const labelTex = new THREE.CanvasTexture(labelCanvas);
+            const labelMesh = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 0.6), new THREE.MeshBasicMaterial({ map: labelTex, transparent: true }));
+            labelMesh.position.set(0, 2.9, 0.3); // Above header, sticking out
+            group.add(labelMesh);
+
+            // Floor Marker (Holographic projection on floor)
+            // Position needs to be in WORLD coordinates because it's on the floor plane separate from door group?
+            // Actually, we can put it in the group but it needs to lie flat on world floor.
+            // Group y = 4.5. Floor y = 0.
+            // Local y = -4.45.
+            const marker = new THREE.Mesh(
+                new THREE.RingGeometry(0.8, 1.0, 32),
+                new THREE.MeshBasicMaterial({ color: data.color, side: THREE.DoubleSide, transparent: true, opacity: 0.6 })
+            );
+            marker.rotation.x = -Math.PI / 2;
+            marker.position.set(0, -4.45, 1.5); // In front of door
+            group.add(marker);
+
+            // Store markers for distance check (convert local to world for logic later if needed, 
+            // but existing logic uses data.markerPos. Let's update data.markerPos)
+            // Simple approach: Calculate world pos manually
+            const markerWorldX = isLeft ? data.x + 1.5 : data.x - 1.5; // Rough estimate based on rotation
+            // Actually, keep logic simple: The group is at data.x, data.z.
+            // Marker is 1.5 units 'forward' (local +Z).
+            // Default rotation is +/- PI/2.
+            // +Z local = +X world (Left Wall, Rot PI/2) -> wait.
+            // Left Wall (x=-11): Rot Y = PI/2. Local +Z (1.5) -> World +X direction. x = -11 + 1.5 = -9.5. Correct.
+            // Right Wall (x=11): Rot Y = -PI/2. Local +Z (1.5) -> World +X direction?
+            // Rot -90 deg. +Z -> +X ?? No. 
+            // Forward vector (0,0,1) rotated -90 deg Y becomes (1,0,0). So yes. 
+
+            // Wait, standard rotation:
+            // Left wall (Left of camera facing -Z? No, camera at +Z looking -Z).
+            // Left wall is roughly x < 0.
+            // To face center (x=0), left wall looks +X.
+            // Right wall looks -X.
+
+            // Rot Y = PI/2 (90 deg). Z axis -> X axis. Correct.
+            // Rot Y = -PI/2 (-90 deg). Z axis -> -X axis. Correct.
+
+            // data.markerPos was used for proximity.
+            // Let's rely on the Group world position? No, `update` loop might use it.
+            // Let's update `data.markerPos` to be the world position of that ring.
+
+            const forwardOffset = 1.5;
+            data.markerPos = {
+                x: isLeft ? data.x + forwardOffset : data.x - forwardOffset,
+                z: data.z
+            };
+
+            scene.add(group);
+        }
+
+        function createStationIcon(parent, type, colorHex) {
+            const material = new THREE.MeshStandardMaterial({
+                color: colorHex,
+                roughness: 0.2,
+                metalness: 0.8,
+                emissive: colorHex,
+                emissiveIntensity: 0.4
+            });
+
+            if (type === 'ownership') {
+                // DNA Helix
+                for (let i = 0; i < 10; i++) {
+                    const y = (i - 4.5) * 0.25;
+                    const angle = i * 0.6;
+                    const r = 0.5;
+                    // Strand 1
+                    const b1 = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), material);
+                    b1.position.set(Math.cos(angle) * r, y, Math.sin(angle) * r);
+                    parent.add(b1);
+                    // Strand 2
+                    const b2 = new THREE.Mesh(new THREE.SphereGeometry(0.08, 8, 8), material);
+                    b2.position.set(Math.cos(angle + Math.PI) * r, y, Math.sin(angle + Math.PI) * r);
+                    parent.add(b2);
+                    // Connector
+                    const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 1, 4), material);
+                    bar.rotation.x = Math.PI / 2;
+                    bar.rotation.z = angle;
+                    bar.position.y = y;
+                    parent.add(bar);
+                }
+            } else if (type === 'tee') {
+                // Mechanical Heart (Dodecahedron)
+                const heart = new THREE.Mesh(new THREE.DodecahedronGeometry(0.6, 0), material);
+                parent.add(heart);
+                // Arteries
+                const tube = new THREE.Mesh(new THREE.TorusGeometry(0.8, 0.05, 8, 32), material);
+                tube.rotation.x = Math.PI / 2;
+                parent.add(tube);
+            } else if (type === 'encryption') {
+                // Padlock / Shield
+                const body = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.7, 0.3), material);
+                parent.add(body);
+                const shackle = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.08, 8, 16, Math.PI), material);
+                shackle.position.y = 0.35;
+                parent.add(shackle);
+            } else if (type === 'blockchain') {
+                // Chain links
+                const link1 = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.1, 8, 16), material);
+                link1.position.y = 0.3;
+                link1.rotation.y = Math.PI / 2;
+                parent.add(link1);
+                const link2 = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.1, 8, 16), material);
+                link2.position.y = -0.3;
+                parent.add(link2);
+            } else if (type === 'storage') {
+                // Server blocks
+                const box = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.2, 0.8), material);
+                for (let i = -2; i <= 2; i++) {
+                    const c = box.clone();
+                    c.position.y = i * 0.25;
+                    parent.add(c);
+                }
+            } else {
+                // Generic floating crystal
+                const crystal = new THREE.Mesh(new THREE.OctahedronGeometry(0.6, 0), material);
+                parent.add(crystal);
+            }
+        }
+
+        function createSignage(text, x, y, z, rotY) {
+            // 1. Text Texture (Emissive / Glow)
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024; // Higher res for crisp text
+            canvas.height = 256;
+            const ctx = canvas.getContext('2d');
+
+            // Background (Dark Metal / Glass)
+            ctx.fillStyle = '#0f172a';
+            ctx.fillRect(0, 0, 1024, 256);
+
+            // Glow Effect for Border
+            ctx.shadowColor = '#0ea5e9';
+            ctx.shadowBlur = 30;
+            ctx.strokeStyle = '#0ea5e9';
+            ctx.lineWidth = 12;
+
+            // Rounded Border
+            const r = 20;
+            ctx.beginPath();
+            ctx.moveTo(20 + r, 20);
+            ctx.lineTo(1004 - r, 20);
+            ctx.quadraticCurveTo(1004, 20, 1004, 20 + r);
+            ctx.lineTo(1004, 236 - r);
+            ctx.quadraticCurveTo(1004, 236, 1004 - r, 236);
+            ctx.lineTo(20 + r, 236);
+            ctx.quadraticCurveTo(20, 236, 20, 236 - r);
+            ctx.lineTo(20, 20 + r);
+            ctx.quadraticCurveTo(20, 20, 20 + r, 20);
+            ctx.stroke();
+
+            // Text Glow
+            ctx.shadowBlur = 40;
+            ctx.shadowColor = '#00ffff'; // Brighter cyan for text glow
+            ctx.fillStyle = '#ffffff';
+            ctx.font = 'bold 90px "Inter", sans-serif'; // Larger font
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            ctx.letterSpacing = '5px'; // Modern tracking
+            ctx.fillText(text.toUpperCase(), 512, 128);
+
+            const tex = new THREE.CanvasTexture(canvas);
+
+            // 2. Materials
+            // Iron Material (Body)
+            const ironMat = new THREE.MeshStandardMaterial({
+                color: 0x1e293b,
+                roughness: 0.4,
+                metalness: 0.9,
+            });
+
+            // Face Material (Screen/Lit area)
+            // Use texture as emissive map so it glows in dark
+            const faceMat = new THREE.MeshStandardMaterial({
+                color: 0x000000, // Black base
+                roughness: 0.2,
+                metalness: 0.8,
+                emissive: 0xffffff,
+                emissiveMap: tex,
+                emissiveIntensity: 1.5 // Bright glow
+            });
+
+            // 3. Geometry (3D Box)
+            // 4m wide, 1m high, 0.2m thick
+            const geometry = new THREE.BoxGeometry(4, 1, 0.2);
+
+            // Apply face material to Front (index 4) and Back (index 5) if desired, 
+            // but usually signs are one-sided or double-sided. Let's make it double sided.
+            const materials = [
+                ironMat, // Right
+                ironMat, // Left
+                ironMat, // Top
+                ironMat, // Bottom
+                faceMat, // Front
+                faceMat  // Back
+            ];
+
+            const signMesh = new THREE.Mesh(geometry, materials);
+            signMesh.position.set(x, y, z);
+            signMesh.rotation.y = rotY;
+            signMesh.castShadow = true;
+            signMesh.receiveShadow = true;
+
+            // 4. Hangers (Iron Rods)
+            const rodGeo = new THREE.CylinderGeometry(0.04, 0.04, 1.5, 8); // Thinner, realistic
+            const rodMat = new THREE.MeshStandardMaterial({
+                color: 0x334155,
+                metalness: 0.8,
+                roughness: 0.5
+            });
+
+            const rodL = new THREE.Mesh(rodGeo, rodMat);
+            rodL.position.set(-1.5, 0.75, 0); // Position relative to sign center
+            signMesh.add(rodL);
+
+            const rodR = rodL.clone();
+            rodR.position.set(1.5, 0.75, 0);
+            signMesh.add(rodR);
+
+            // 5. Mount Points (Ceiling connection)
+            const mountGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.1, 16);
+            const mountMat = new THREE.MeshStandardMaterial({ color: 0x0f172a, metalness: 0.5 });
+
+            const mountL = new THREE.Mesh(mountGeo, mountMat);
+            mountL.position.set(0, 0.75, 0); // Top of rod
+            rodL.add(mountL);
+
+            const mountR = mountL.clone();
+            mountR.position.set(0, 0.75, 0);
+            rodR.add(mountR);
+
+            scene.add(signMesh);
+        }
+
+        function createDrone(startX, startZ, rangeZ) {
+            const droneGroup = new THREE.Group();
+            droneGroup.position.set(startX, 6, startZ);
+
+            // 1. Body
+            const bodyGeo = new THREE.SphereGeometry(0.4, 24, 24);
+            const bodyMat = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                roughness: 0.2,
+                metalness: 0.5
+            });
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            body.castShadow = true;
+            droneGroup.add(body);
+
+            // 2. Eye (Glowing)
+            const eyeGeo = new THREE.SphereGeometry(0.15, 16, 16);
+            const eyeMat = new THREE.MeshStandardMaterial({
+                color: 0x0ea5e9,
+                emissive: 0x0ea5e9,
+                emissiveIntensity: 1.0
+            });
+            const eye = new THREE.Mesh(eyeGeo, eyeMat);
+            eye.position.set(0, 0, 0.3); // Front
+            eye.scale.z = 0.5;
+            droneGroup.add(eye);
+
+            // 3. Medical Cross (Red, on top/side)
+            const crossGroup = new THREE.Group();
+            crossGroup.position.set(0.3, 0.1, 0);
+            crossGroup.rotation.y = Math.PI / 2;
+            crossGroup.scale.set(0.15, 0.15, 0.15);
+            droneGroup.add(crossGroup);
+
+            const cMat = new THREE.MeshBasicMaterial({ color: 0xef4444 });
+            const vBar = new THREE.Mesh(new THREE.BoxGeometry(0.4, 1.2, 0.1), cMat);
+            const hBar = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.4, 0.1), cMat);
+            crossGroup.add(vBar);
+            crossGroup.add(hBar);
+
+            // 4. Hover Ring
+            const ringGeo = new THREE.TorusGeometry(0.5, 0.05, 8, 32);
+            const ringMat = new THREE.MeshStandardMaterial({ color: 0x94a3b8, metalness: 0.8, roughness: 0.2 });
+            const ring = new THREE.Mesh(ringGeo, ringMat);
+            ring.rotation.x = Math.PI / 2;
+            droneGroup.add(ring);
+
+            scene.add(droneGroup);
+
+            // Drone Logic Object
+            const drone = {
+                mesh: droneGroup,
+                baseY: 6,
+                startZ: startZ,
+                rangeZ: rangeZ, // Total range (half forward, half back)
+                speed: 1.5 + Math.random(), // Random speed
+                offset: Math.random() * 100, // Random time offset
+                state: 'patrol', // 'patrol' or 'watch'
+
+                update: (delta, playerPos) => {
+                    const time = Date.now() * 0.001 + drone.offset;
+
+                    // Float
+                    drone.mesh.position.y = drone.baseY + Math.sin(time * 3) * 0.2;
+
+                    // Distance to player
+                    const dist = drone.mesh.position.distanceTo(playerPos);
+
+                    if (dist < 8) {
+                        // Watch Mode
+                        drone.state = 'watch';
+
+                        // Look at player (smoothly)
+                        const targetLook = new THREE.Vector3(playerPos.x, playerPos.y + 1, playerPos.z);
+                        drone.mesh.lookAt(targetLook);
+
+                    } else {
+                        // Patrol Mode
+                        drone.state = 'patrol';
+
+                        // Move Z
+                        // Sine wave patrol
+                        const patrolTime = time * 0.5 * (3 / drone.speed);
+                        const zOffset = Math.sin(patrolTime) * (drone.rangeZ / 2);
+                        const targetZ = drone.startZ + zOffset;
+
+                        // Face movement direction
+                        // Look at where we are going (tangent of sine is cosine)
+                        const dir = Math.cos(patrolTime);
+                        const lookZ = targetZ + (dir * 5);
+
+                        const targetLook = new THREE.Vector3(startX, drone.baseY, lookZ);
+                        drone.mesh.lookAt(targetLook);
+
+                        drone.mesh.position.z = targetZ;
+                    }
+                }
+            };
+
+            drones.push(drone);
+            return drone;
+        }
+
+        function createScanner() {
+            scannerGroup = new THREE.Group();
+            scannerGroup.visible = false;
+            scene.add(scannerGroup);
+
+            // 1. Vertical Laser Grid (Cylinder)
+            // Use a texture for lines if possible, or just wide wireframe look via repeated texture
+            const canvas = document.createElement('canvas');
+            canvas.width = 128;
+            canvas.height = 32;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = '#00000000'; // Transparent
+            ctx.fillRect(0, 0, 128, 32);
+            ctx.fillStyle = '#0ea5e9'; // Blue lines
+            ctx.fillRect(0, 14, 128, 4); // Horizontal line
+
+            const gridTex = new THREE.CanvasTexture(canvas);
+            gridTex.wrapS = THREE.RepeatWrapping;
+            gridTex.wrapT = THREE.RepeatWrapping;
+            gridTex.repeat.set(1, 10); // 10 lines vertical
+
+            const cylGeo = new THREE.CylinderGeometry(1.5, 1.5, 3.5, 32, 1, true);
+            const cylMat = new THREE.MeshBasicMaterial({
+                color: 0x0ea5e9,
+                map: gridTex,
+                transparent: true,
+                opacity: 0.6,
+                side: THREE.DoubleSide,
+                blending: THREE.AdditiveBlending
+            });
+            scannerMesh = new THREE.Mesh(cylGeo, cylMat);
+            scannerMesh.position.y = 1.75; // Half height
+            // We'll scale scale.y and position.y to animate "Beam up"
+            // Actually, better to mask it or just scale geometry?
+            // Let's Just scale the group Y? No, that distorts lines.
+            // Let's position the mesh down and unhide?
+            // Easiest: Clipping plane. But let's try just scaling Y from 0 to 1 at base.
+            // With pivot at bottom.
+            scannerMesh.geometry.translate(0, 1.75, 0); // Move pivot to bottom
+            scannerMesh.position.y = 0;
+            scannerMesh.scale.y = 0;
+            scannerGroup.add(scannerMesh);
+
+            // 2. Holographic Text "Scanning..."
+            scannerCanvas = document.createElement('canvas');
+            scannerCanvas.width = 512;
+            scannerCanvas.height = 128;
+            scannerCtx = scannerCanvas.getContext('2d');
+            scannerTexture = new THREE.CanvasTexture(scannerCanvas);
+
+            const spriteMat = new THREE.SpriteMaterial({ map: scannerTexture, transparent: true });
+            scannerTextSprite = new THREE.Sprite(spriteMat);
+            scannerTextSprite.position.set(0, 3.5, 0); // Above head
+            scannerTextSprite.scale.set(4, 1, 1);
+            scannerGroup.add(scannerTextSprite);
+        }
+
+        function updateScannerText(percent) {
+            if (Math.floor(percent) === lastScanPercent) return;
+            lastScanPercent = Math.floor(percent);
+
+            const ctx = scannerCtx;
+            ctx.clearRect(0, 0, 512, 128);
+
+            // Text
+            ctx.font = 'bold 60px Inter, sans-serif';
+            ctx.textAlign = 'center';
+            ctx.fillStyle = '#0ea5e9';
+            ctx.shadowColor = '#0ea5e9';
+            ctx.shadowBlur = 10;
+            ctx.fillText(`SCANNING... ${lastScanPercent}%`, 256, 80);
+
+            // Bar background
+            ctx.fillStyle = 'rgba(14, 165, 233, 0.2)';
+            ctx.fillRect(106, 100, 300, 10);
+
+            // Bar fill
+            ctx.fillStyle = '#0ea5e9';
+            ctx.fillRect(106, 100, 300 * (percent / 100), 10);
+
+            scannerTexture.needsUpdate = true;
+        }
+
+        function createPortal() {
+            createScanner();
+            const portalGroup = new THREE.Group();
+            portalGroup.position.set(0, 5, -98);
+            scene.add(portalGroup);
+
+            // 1. Frame
+            const frameGeo = new THREE.TorusGeometry(6, 0.8, 16, 50);
+            const frameMat = new THREE.MeshStandardMaterial({
+                color: 0x334155,
+                roughness: 0.2,
+                metalness: 0.9
+            });
+            const frame = new THREE.Mesh(frameGeo, frameMat);
+            portalGroup.add(frame);
+
+            // 2. Event Horizon (Swirl)
+            const horizonGeo = new THREE.CircleGeometry(5.8, 32);
+            // Create a canvas texture for swirl
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+            // Draw a quick spiral/galaxy pattern
+            const grad = ctx.createRadialGradient(256, 256, 0, 256, 256, 256);
+            grad.addColorStop(0, '#ffffff');
+            grad.addColorStop(0.2, '#0ea5e9'); // Sky blue
+            grad.addColorStop(0.6, '#0f172a'); // Dark blue
+            grad.addColorStop(1, '#000000');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 512, 512);
+
+            // Add some "Stars" or noise
+            ctx.fillStyle = '#ffffff';
+            for (let i = 0; i < 100; i++) {
+                ctx.beginPath();
+                ctx.arc(Math.random() * 512, Math.random() * 512, Math.random() * 3, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            const swirlTex = new THREE.CanvasTexture(canvas);
+            const horizonMat = new THREE.MeshBasicMaterial({
+                map: swirlTex,
+                side: THREE.DoubleSide
+            });
+            portalSwirl = new THREE.Mesh(horizonGeo, horizonMat);
+            portalGroup.add(portalSwirl);
+
+            // 3. Inner Light (Pulsing)
+            portalLight = new THREE.PointLight(0x0ea5e9, 0, 20); // Start 0 intensity
+            portalLight.position.set(0, 0, 2);
+            portalGroup.add(portalLight);
+
+            // 4. God Ray (Spotlight)
+            portalGodRay = new THREE.SpotLight(0xffffff, 0); // Start 0 intensity
+            portalGodRay.position.set(0, 5, -100);
+            portalGodRay.target.position.set(0, 0, -50);
+            portalGodRay.angle = Math.PI / 8;
+            portalGodRay.penumbra = 0.5;
+            portalGodRay.distance = 60;
+            portalGodRay.castShadow = true;
+            scene.add(portalGodRay);
+            scene.add(portalGodRay.target);
+        }
+
+        function createMascot() {
+            mascot = new THREE.Group();
+            mascotParts = {};
+
+            // --- MATERIALS (High Quality Vinyl Toy Look) ---
+            const skinMat = new THREE.MeshPhysicalMaterial({
+                color: 0x38bdf8, // Baby Blue
+                roughness: 0.2,
+                metalness: 0.1,
+                clearcoat: 0.8,
+                clearcoatRoughness: 0.2
+            });
+            const bellyMat = new THREE.MeshPhysicalMaterial({
+                color: 0xf0f9ff, // Bright belly
+                roughness: 0.2,
+                metalness: 0.0,
+                clearcoat: 0.6,
+                clearcoatRoughness: 0.3,
+                transparent: true,
+                opacity: 0.92
+            });
+            const coatMat = new THREE.MeshStandardMaterial({
+                color: 0xffffff,
+                roughness: 0.5,
+                side: THREE.DoubleSide
+            });
+            const eyeBlackMat = new THREE.MeshPhysicalMaterial({
+                color: 0x0a0a0a, // Pitch black
+                roughness: 0.0,
+                metalness: 0.0,
+                clearcoat: 1.0,
+                emissive: 0x111111,
+                emissiveIntensity: 0.3
+            });
+            const metalMat = new THREE.MeshStandardMaterial({
+                color: 0x94a3b8, // silver
+                roughness: 0.2,
+                metalness: 1.0
+            });
+            const cheekMat = new THREE.MeshStandardMaterial({
+                color: 0xfda4af, // rosy pink
+                transparent: true,
+                opacity: 0.4,
+                roughness: 0.8
+            });
+
+            // 1. BODY (Chubby Chibi Vinyl Toy Shape)
+            const bodyGeo = new THREE.SphereGeometry(0.75, 32, 32);
+            const body = new THREE.Mesh(bodyGeo, skinMat);
+            body.geometry.translate(0, 0.15, 0); // Shift pivot lower
+            body.scale.set(1.0, 1.15, 1.0); // Taller, rounder belly
+            body.position.y = 0.85;
+            body.castShadow = true;
+            mascot.add(body);
+            mascotParts.body = body;
+
+            // Belly Patch (soft, prominent, brighter)
+            const belly = new THREE.Mesh(new THREE.SphereGeometry(0.62, 24, 24), bellyMat);
+            belly.scale.set(0.95, 0.9, 0.55);
+            belly.position.set(0, 0.15, 0.52);
+            body.add(belly);
+
+            // Ears (small rounded bumps on top of head)
+            const earGeo = new THREE.SphereGeometry(0.18, 16, 16);
+            const leftEar = new THREE.Mesh(earGeo, skinMat);
+            leftEar.position.set(-0.55, 1.25, 0.0);
+            leftEar.scale.set(0.8, 1.0, 0.7);
+            body.add(leftEar);
+            const rightEar = new THREE.Mesh(earGeo, skinMat);
+            rightEar.position.set(0.55, 1.25, 0.0);
+            rightEar.scale.set(0.8, 1.0, 0.7);
+            body.add(rightEar);
+            mascotParts.leftEar = leftEar;
+            mascotParts.rightEar = rightEar;
+
+            // --- LAB COAT (Open cylinder, wraps body) ---
+            const coatGroup = new THREE.Group();
+            body.add(coatGroup);
+
+            const coatGeo = new THREE.CylinderGeometry(0.78, 0.85, 1.1, 32, 1, true, 0, Math.PI * 1.4);
+            const coat = new THREE.Mesh(coatGeo, coatMat);
+            coat.rotation.y = Math.PI * 1.3;
+            coat.position.y = 0.1;
+            coatGroup.add(coat);
+
+            // Collar
+            const collar = new THREE.Mesh(new THREE.TorusGeometry(0.76, 0.1, 16, 32, Math.PI * 1.3), coatMat);
+            collar.rotation.x = Math.PI / 2;
+            collar.rotation.z = Math.PI * 1.35;
+            collar.position.y = 0.7;
+            coatGroup.add(collar);
+
+            // Badge
+            const badge = new THREE.Mesh(new THREE.BoxGeometry(0.2, 0.15, 0.02), metalMat);
+            badge.position.set(0.45, 0.3, 0.65);
+            badge.rotation.y = -0.4;
+            coatGroup.add(badge);
+
+            // --- IMPROVED STETHOSCOPE (TubeGeometry curve + chest piece + ear pieces) ---
+            const stethGroup = new THREE.Group();
+            body.add(stethGroup);
+
+            // Create curved tube path - goes from left shoulder, down across chest, to center
+            const tubeCurve = new THREE.CatmullRomCurve3([
+                new THREE.Vector3(-0.6, 0.65, 0.3),
+                new THREE.Vector3(-0.65, 0.55, 0.55),
+                new THREE.Vector3(-0.4, 0.35, 0.75),
+                new THREE.Vector3(0.0, 0.2, 0.85),
+                new THREE.Vector3(0.2, 0.18, 0.78)
+            ]);
+            const tubeGeo = new THREE.TubeGeometry(tubeCurve, 20, 0.035, 8, false);
+            const stethTubeMesh = new THREE.Mesh(tubeGeo, new THREE.MeshStandardMaterial({ color: 0x334155, roughness: 0.4 }));
+            stethGroup.add(stethTubeMesh);
+
+            // Chest piece (flattened sphere)
+            const chestPiece = new THREE.Mesh(
+                new THREE.SphereGeometry(0.1, 16, 16),
+                new THREE.MeshStandardMaterial({ color: 0x64748b, roughness: 0.3, metalness: 0.8 })
+            );
+            chestPiece.scale.set(1, 0.5, 1);
+            chestPiece.position.set(0.2, 0.18, 0.8);
+            stethGroup.add(chestPiece);
+
+            // Ear piece tubes (small tubes going up from curve point)
+            const earTubeLeft = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.02, 0.02, 0.3, 8),
+                new THREE.MeshStandardMaterial({ color: 0x334155 })
+            );
+            earTubeLeft.position.set(-0.6, 0.8, 0.15);
+            earTubeLeft.rotation.z = 0.3;
+            stethGroup.add(earTubeLeft);
+
+            // Left earpiece (small cylinder)
+            const earPieceLeft = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.04, 0.04, 0.15, 8),
+                metalMat
+            );
+            earPieceLeft.position.set(-0.72, 0.95, 0.1);
+            earPieceLeft.rotation.z = Math.PI / 2;
+            stethGroup.add(earPieceLeft);
+
+            // 2. HEAD (Large & Round, chibi proportions)
+            const headGroup = new THREE.Group();
+            headGroup.position.set(0, 1.05, 0);
+            body.add(headGroup);
+            mascotParts.head = headGroup;
+
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.82, 32, 32), skinMat);
+            head.position.y = 0.6;
+            headGroup.add(head);
+
+            // Snout (smaller, button-like)
+            const snoutGeo = new THREE.SphereGeometry(0.28, 16, 16);
+            const snout = new THREE.Mesh(snoutGeo, skinMat);
+            snout.scale.set(1.1, 0.85, 0.9);
+            snout.position.set(0, 0.38, 0.68);
+            headGroup.add(snout);
+            mascotParts.snout = snout;
+
+            // Nostrils (two tiny dark spheres)
+            const nostrilMat = new THREE.MeshStandardMaterial({ color: 0x0c4a6e, roughness: 0.8 });
+            const leftNostril = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), nostrilMat);
+            leftNostril.position.set(-0.08, 0.35, 0.9);
+            headGroup.add(leftNostril);
+            const rightNostril = new THREE.Mesh(new THREE.SphereGeometry(0.04, 8, 8), nostrilMat);
+            rightNostril.position.set(0.08, 0.35, 0.9);
+            headGroup.add(rightNostril);
+
+            // Cheeks (rosy pink semi-transparent spheres)
+            const leftCheek = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 12), cheekMat);
+            leftCheek.position.set(-0.5, 0.45, 0.55);
+            leftCheek.scale.set(1.0, 0.7, 0.5);
+            headGroup.add(leftCheek);
+            const rightCheek = new THREE.Mesh(new THREE.SphereGeometry(0.15, 12, 12), cheekMat);
+            rightCheek.position.set(0.5, 0.45, 0.55);
+            rightCheek.scale.set(1.0, 0.7, 0.5);
+            headGroup.add(rightCheek);
+
+            // Smile (subtle TorusGeometry arc)
+            const smileGeo = new THREE.TorusGeometry(0.12, 0.015, 8, 16, Math.PI * 0.6);
+            const smileMat = new THREE.MeshStandardMaterial({ color: 0x0c4a6e, roughness: 0.6 });
+            const smile = new THREE.Mesh(smileGeo, smileMat);
+            smile.position.set(0, 0.25, 0.82);
+            smile.rotation.x = Math.PI / 8;
+            headGroup.add(smile);
+            mascotParts.smile = smile;
+
+            // Eyes (Glossy Black with sparkle + eyelids for blinking)
+            const leftEyeGroup = new THREE.Group();
+            leftEyeGroup.position.set(-0.32, 0.68, 0.68);
+            leftEyeGroup.rotation.y = -0.25;
+            headGroup.add(leftEyeGroup);
+
+            const eyeGeo = new THREE.SphereGeometry(0.19, 16, 16);
+            const leftEye = new THREE.Mesh(eyeGeo, eyeBlackMat);
+            leftEye.scale.set(1, 1, 0.55);
+            leftEyeGroup.add(leftEye);
+            mascotParts.leftEye = leftEye;
+
+            // Sparkle (white specular dot with slight glow)
+            const sparkleMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const sparkle = new THREE.Mesh(new THREE.SphereGeometry(0.045), sparkleMat);
+            sparkle.position.set(0.07, 0.08, 0.13);
+            leftEyeGroup.add(sparkle);
+
+            // Left Eyelid (for blinking)
+            const eyelidGeo = new THREE.SphereGeometry(0.21, 16, 8, 0, Math.PI * 2, 0, Math.PI * 0.4);
+            const eyelidMat = new THREE.MeshStandardMaterial({ color: 0x38bdf8, roughness: 0.3, side: THREE.DoubleSide });
+            const leftEyelid = new THREE.Mesh(eyelidGeo, eyelidMat);
+            leftEyelid.scale.set(1.0, 0.5, 0.55);
+            leftEyelid.position.set(0, 0.1, 0.02);
+            leftEyelid.rotation.x = Math.PI * 0.15;
+            leftEyelid.visible = false;
+            leftEyeGroup.add(leftEyelid);
+            mascotParts.leftEyelid = leftEyelid;
+
+            const rightEyeGroup = new THREE.Group();
+            rightEyeGroup.position.set(0.32, 0.68, 0.68);
+            rightEyeGroup.rotation.y = 0.25;
+            headGroup.add(rightEyeGroup);
+
+            const rightEye = new THREE.Mesh(eyeGeo, eyeBlackMat);
+            rightEye.scale.set(1, 1, 0.55);
+            rightEyeGroup.add(rightEye);
+            mascotParts.rightEye = rightEye;
+
+            // Right sparkle
+            const rightSparkle = new THREE.Mesh(new THREE.SphereGeometry(0.045), sparkleMat);
+            rightSparkle.position.set(-0.07, 0.08, 0.13);
+            rightEyeGroup.add(rightSparkle);
+
+            // Right Eyelid
+            const rightEyelid = new THREE.Mesh(eyelidGeo, eyelidMat);
+            rightEyelid.scale.set(1.0, 0.5, 0.55);
+            rightEyelid.position.set(0, 0.1, 0.02);
+            rightEyelid.rotation.x = Math.PI * 0.15;
+            rightEyelid.visible = false;
+            rightEyeGroup.add(rightEyelid);
+            mascotParts.rightEyelid = rightEyelid;
+
+            // Surgical Cap (cute tilted hat)
+            const capGroup = new THREE.Group();
+            capGroup.position.set(0, 1.32, 0);
+            capGroup.rotation.z = -0.15;
+            capGroup.rotation.x = -0.1;
+            headGroup.add(capGroup);
+            mascotParts.capGroup = capGroup;
+
+            const capMesh = new THREE.Mesh(new THREE.CylinderGeometry(0.52, 0.52, 0.26, 24), new THREE.MeshStandardMaterial({ color: 0x0ea5e9, roughness: 0.6 }));
+            capGroup.add(capMesh);
+            const capTop = new THREE.Mesh(new THREE.SphereGeometry(0.52, 24, 12, 0, Math.PI * 2, 0, Math.PI / 2), new THREE.MeshStandardMaterial({ color: 0x0ea5e9, roughness: 0.6 }));
+            capTop.position.y = 0.13;
+            capGroup.add(capTop);
+
+            // 3. LIMBS (Stubby & Cute)
+            const armGeo = new THREE.CapsuleGeometry(0.15, 0.4, 4, 8);
+            const legGeo = new THREE.CapsuleGeometry(0.26, 0.38, 4, 8);
+
+            // Left Arm
+            const leftArmGroup = new THREE.Group();
+            leftArmGroup.position.set(-0.8, 0.28, 0.1);
+            body.add(leftArmGroup);
+            mascotParts.leftArm = leftArmGroup;
+
+            const leftArm = new THREE.Mesh(armGeo, skinMat);
+            leftArm.rotation.z = -0.35;
+            leftArm.rotation.x = 0.5;
+            leftArm.position.y = -0.2;
+            leftArmGroup.add(leftArm);
+            const leftSleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.2, 0.3), coatMat);
+            leftSleeve.position.set(0, -0.1, 0);
+            leftSleeve.rotation.z = -0.35;
+            leftSleeve.rotation.x = 0.5;
+            leftArmGroup.add(leftSleeve);
+
+            // Right Arm
+            const rightArmGroup = new THREE.Group();
+            rightArmGroup.position.set(0.8, 0.28, 0.1);
+            body.add(rightArmGroup);
+            mascotParts.rightArm = rightArmGroup;
+
+            const rightArm = new THREE.Mesh(armGeo, skinMat);
+            rightArm.rotation.z = 0.35;
+            rightArm.rotation.x = 0.5;
+            rightArm.position.y = -0.2;
+            rightArmGroup.add(rightArm);
+            const rightSleeve = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.2, 0.3), coatMat);
+            rightSleeve.position.set(0, -0.1, 0);
+            rightSleeve.rotation.z = 0.35;
+            rightSleeve.rotation.x = 0.5;
+            rightArmGroup.add(rightSleeve);
+
+            // Legs
+            const leftLegGroup = new THREE.Group();
+            leftLegGroup.position.set(-0.38, -0.52, 0);
+            body.add(leftLegGroup);
+            mascotParts.leftLeg = leftLegGroup;
+
+            const leftLeg = new THREE.Mesh(legGeo, skinMat);
+            leftLeg.position.y = -0.18;
+            leftLegGroup.add(leftLeg);
+
+            const rightLegGroup = new THREE.Group();
+            rightLegGroup.position.set(0.38, -0.52, 0);
+            body.add(rightLegGroup);
+            mascotParts.rightLeg = rightLegGroup;
+
+            const rightLeg = new THREE.Mesh(legGeo, skinMat);
+            rightLeg.position.y = -0.18;
+            rightLegGroup.add(rightLeg);
+
+            // 4. TAIL (Thick & Wiggly)
+            const tailGroup = new THREE.Group();
+            tailGroup.position.set(0, -0.38, -0.72);
+            body.add(tailGroup);
+            mascotParts.tail = tailGroup;
+
+            const tail = new THREE.Mesh(new THREE.ConeGeometry(0.38, 0.75, 16), skinMat);
+            tail.rotation.x = -Math.PI / 1.8;
+            tail.position.set(0, 0, -0.28);
+            tailGroup.add(tail);
+
+            mascot.position.set(pos.x, 0, pos.z);
+            mascot.castShadow = true;
+
+            // Interaction Progress Ring
+            const ringGeo = new THREE.RingGeometry(1.2, 1.4, 32, 1, 0, 0);
+            const ringMat = new THREE.MeshBasicMaterial({ color: 0x0ea5e9, side: THREE.DoubleSide, transparent: true, opacity: 0.8 });
+            const timerRing = new THREE.Mesh(ringGeo, ringMat);
+            timerRing.rotation.x = -Math.PI / 2;
+            timerRing.position.y = 0.1;
+            timerRing.visible = false;
+            mascot.add(timerRing);
+            mascotParts.timerRing = timerRing;
+
+            // --- CONTACT SHADOW (soft blob under mascot) ---
+            const shadowCanvas = document.createElement('canvas');
+            shadowCanvas.width = 128;
+            shadowCanvas.height = 128;
+            const shadowCtx = shadowCanvas.getContext('2d');
+            const gradient = shadowCtx.createRadialGradient(64, 64, 0, 64, 64, 64);
+            gradient.addColorStop(0, 'rgba(0,0,0,0.35)');
+            gradient.addColorStop(0.5, 'rgba(0,0,0,0.15)');
+            gradient.addColorStop(1, 'rgba(0,0,0,0)');
+            shadowCtx.fillStyle = gradient;
+            shadowCtx.fillRect(0, 0, 128, 128);
+            const shadowTex = new THREE.CanvasTexture(shadowCanvas);
+            const shadowGeo = new THREE.CircleGeometry(1.4, 32);
+            const shadowMat = new THREE.MeshBasicMaterial({
+                map: shadowTex,
+                transparent: true,
+                depthWrite: false,
+                blending: THREE.MultiplyBlending
+            });
+            contactShadow = new THREE.Mesh(shadowGeo, shadowMat);
+            contactShadow.rotation.x = -Math.PI / 2;
+            contactShadow.position.y = 0.02;
+            contactShadow.renderOrder = -1;
+            mascot.add(contactShadow);
+
+            scene.add(mascot);
+        }
+
+        function animateMascot(delta) {
+            if (!mascot || !mascotParts.leftLeg) return;
+
+            walkTime += delta * (isWalking ? 12 : 3);
+
+            // Walk Cycle - Legs
+            const legAmp = isWalking ? 0.6 : 0.05;
+            mascotParts.leftLeg.rotation.x = Math.sin(walkTime) * legAmp;
+            mascotParts.rightLeg.rotation.x = Math.sin(walkTime + Math.PI) * legAmp;
+
+            // Arms - T-rex wiggle
+            const armAmp = isWalking ? 0.2 : 0.05;
+            mascotParts.leftArm.rotation.z = 0.22 + Math.sin(walkTime) * armAmp;
+            mascotParts.rightArm.rotation.z = -0.22 - Math.sin(walkTime) * armAmp;
+
+            // Tail wag
+            const tailAmp = isWalking ? 0.3 : 0.1;
+            mascotParts.tail.rotation.y = Math.sin(walkTime * 0.8) * tailAmp;
+
+            // Head bob & Turn
+            mascotParts.head.rotation.y = Math.sin(walkTime * 0.5) * 0.1;
+            mascotParts.head.rotation.z = Math.sin(walkTime) * 0.05;
+
+            // Idle bob (increased to +/-0.12)
+            mascot.position.y = Math.abs(Math.sin(walkTime * 2)) * 0.12;
+
+            // Breathing animation (slow sine wave on body scale.y)
+            breathTimer += delta;
+            const breathScale = 1.0 + Math.sin(breathTimer * Math.PI) * 0.02;
+            if (mascotParts.body) mascotParts.body.scale.y = breathScale;
+
+            // Blink animation (every 3-5 seconds randomly)
+            blinkTimer += delta;
+            if (!isBlinking && blinkTimer >= blinkInterval) {
+                isBlinking = true;
+                blinkPhase = 0;
+                blinkTimer = 0;
+                blinkInterval = 3 + Math.random() * 2; // Reset to next random interval
+            }
+            if (isBlinking) {
+                blinkPhase += delta * 15; // Speed of blink
+                if (blinkPhase < Math.PI) {
+                    const blinkAmt = Math.sin(blinkPhase);
+                    if (mascotParts.leftEyelid) mascotParts.leftEyelid.visible = blinkAmt > 0.3;
+                    if (mascotParts.rightEyelid) mascotParts.rightEyelid.visible = blinkAmt > 0.3;
+                } else {
+                    if (mascotParts.leftEyelid) mascotParts.leftEyelid.visible = false;
+                    if (mascotParts.rightEyelid) mascotParts.rightEyelid.visible = false;
+                    isBlinking = false;
+                }
+            }
+
+            // Ear twitch (random small rotation every ~4 seconds)
+            earTwitchTimer += delta;
+            if (earTwitchTimer > 4.0) {
+                earTwitchAngle = (Math.random() - 0.5) * 0.3;
+                earTwitchTimer = 0;
+            }
+            // Smooth ear return
+            const currentLeftZ = mascotParts.leftEar ? mascotParts.leftEar.rotation.z : 0;
+            const currentRightZ = mascotParts.rightEar ? mascotParts.rightEar.rotation.z : 0;
+            if (mascotParts.leftEar) mascotParts.leftEar.rotation.z = currentLeftZ + (earTwitchAngle - currentLeftZ) * 0.1;
+            if (mascotParts.rightEar) mascotParts.rightEar.rotation.z = currentRightZ + (-earTwitchAngle - currentRightZ) * 0.1;
+        }
+
+        function setupMinimap() {
+            const canvas = document.getElementById('minimapCanvas');
+            ROOMS.forEach(r => {
+                const dot = document.createElement('div');
+                dot.className = 'minimap-room';
+                dot.style.background = '#' + r.color.toString(16).padStart(6, '0');
+                // Map position: x(-24 to 24) -> (0 to 100%), z(10 to -100) -> (0 to 100%)
+                const left = ((r.x + 24) / 48) * 100;
+                const top = ((10 - r.z) / 110) * 100;
+                dot.style.left = left + '%';
+                dot.style.top = top + '%';
+                canvas.appendChild(dot);
+            });
+        }
+
+        function updateMinimap() {
+            const player = document.getElementById('minimapPlayer');
+            const left = ((pos.x + 24) / 48) * 100;
+            const top = ((10 - pos.z) / 110) * 100;
+            player.style.left = left + '%';
+            player.style.top = top + '%';
+        }
+
+        function setupControls() {
+            addEventListener('keydown', e => {
+                const key = e.key.toLowerCase();
+                keys[key] = true;
+                if (key === 'e' && nearRoom) {
+                    console.log('Entering room:', nearRoom.title);
+                    showPanel(nearRoom);
+                }
+                if (e.key === 'Escape') closePanel();
+            });
+            addEventListener('keyup', e => keys[e.key.toLowerCase()] = false);
+            addEventListener('resize', () => {
+                camera.aspect = innerWidth / innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(innerWidth, innerHeight);
+            });
+        }
+
+        let lastTime = 0;
+        function animate(time = 0) {
+            requestAnimationFrame(animate);
+
+            const delta = Math.min((time - lastTime) / 1000, 0.1);
+            lastTime = time;
+
+            // Movement
+            const speed = 8 * delta;
+            let moving = false;
+
+            if (keys['w'] || keys['arrowup']) { pos.z -= speed; targetRotation = Math.PI; moving = true; }
+            if (keys['s'] || keys['arrowdown']) { pos.z += speed; targetRotation = 0; moving = true; }
+            if (keys['a'] || keys['arrowleft']) { pos.x -= speed; targetRotation = Math.PI / 2; moving = true; }
+            if (keys['d'] || keys['arrowright']) { pos.x += speed; targetRotation = -Math.PI / 2; moving = true; }
+
+            // Diagonal movement
+            if ((keys['w'] || keys['arrowup']) && (keys['a'] || keys['arrowleft'])) targetRotation = Math.PI * 0.75;
+            if ((keys['w'] || keys['arrowup']) && (keys['d'] || keys['arrowright'])) targetRotation = -Math.PI * 0.75;
+            if ((keys['s'] || keys['arrowdown']) && (keys['a'] || keys['arrowleft'])) targetRotation = Math.PI * 0.25;
+            if ((keys['s'] || keys['arrowdown']) && (keys['d'] || keys['arrowright'])) targetRotation = -Math.PI * 0.25;
+
+            isWalking = moving;
+
+            // Clamp position
+            pos.x = Math.max(-9, Math.min(9, pos.x));
+            pos.z = Math.max(-95, Math.min(12, pos.z));
+
+            // Update mascot
+            if (mascot) {
+                mascot.position.x = pos.x;
+                mascot.position.z = pos.z;
+
+                // Smooth rotation
+                let rotDiff = targetRotation - mascot.rotation.y;
+                while (rotDiff > Math.PI) rotDiff -= Math.PI * 2;
+                while (rotDiff < -Math.PI) rotDiff += Math.PI * 2;
+                mascot.rotation.y += rotDiff * 0.1;
+
+                animateMascot(delta);
+
+                // Play footsteps
+                if (isWalking) audio.playFootstep();
+            }
+
+            // --- ENDING SEQUENCE LOGIC ---
+            if (!endingTriggered && mascot) {
+                // Check Trigger
+                if (pos.z < -85) {
+                    endingTriggered = true;
+                    endingTimer = 0;
+                    isWalking = false;
+                    keys = {}; // Disable controls
+                    // Reset animation state for clean ending
+                    isBlinking = false;
+                    if (mascotParts.leftEyelid) mascotParts.leftEyelid.visible = false;
+                    if (mascotParts.rightEyelid) mascotParts.rightEyelid.visible = false;
+                    console.log("Ending Sequence Triggered");
+                }
+            } else if (endingTriggered && mascot) {
+                // Running Ending Sequence
+                endingTimer += delta;
+
+                // Portal Swirl Animation
+                if (portalSwirl) portalSwirl.rotation.z -= delta * 2;
+
+                // 1. Turn to Camera (First 0.5s)
+                if (endingTimer < 0.5) {
+                    const t = endingTimer / 0.5;
+                    targetRotation = Math.PI;
+                    mascot.rotation.y = THREE.MathUtils.lerp(mascot.rotation.y, targetRotation, 0.1);
+                } else {
+                    mascot.rotation.y = Math.PI;
+                }
+
+                // 2. Wave Animation (0.5s - 2.5s)
+                if (endingTimer > 0.5 && endingTimer < 2.5) {
+                    if (mascotParts.rightArm) {
+                        // Wave arm
+                        mascotParts.rightArm.rotation.z = 2.5 + Math.sin((endingTimer - 0.5) * 10) * 0.5;
+                        mascotParts.rightArm.rotation.x = 0; // Reset walk rotation
+                    }
+                }
+
+                // 3. Light Beam & Portal Activation (2.0s+)
+                if (endingTimer > 2.0) {
+                    if (portalGodRay && portalGodRay.intensity < 100) {
+                        portalGodRay.intensity += delta * 50; // Fade in light
+                    }
+                    if (portalLight && portalLight.intensity < 5) {
+                        portalLight.intensity += delta * 2;
+                    }
+                }
+
+                // 4. Shrink & Teleport (3.0s - 4.5s)
+                if (endingTimer > 3.0 && endingTimer < 4.5) {
+                    const t = (endingTimer - 3.0) / 1.5; // 0 to 1
+                    const scale = 1.0 - t;
+                    mascot.scale.setScalar(Math.max(0, scale));
+
+                    // Move towards portal center (up and back)
+                    mascot.position.lerp(new THREE.Vector3(0, 5, -98), 0.05);
+                }
+
+                // 5. Fade Out (4.0s+)
+                if (endingTimer > 4.0) {
+                    const overlay = document.getElementById('fade-overlay');
+                    if (overlay) overlay.style.opacity = 1;
+                }
+
+                // 6. Redirect (5.5s)
+                if (endingTimer > 5.5) {
+                    window.location.href = "https://web.telegram.org/k/#-5211039995";
+                }
+            }
+
+            // Camera follow / Animation
+            if (isAnimatingCamera) {
+                // Zoom into room (Faster transition)
+                const lerpSpeed = 0.1; // 0.5s - 0.8s feel
+                camera.position.lerp(cameraTarget, lerpSpeed);
+
+                // Helper to lerp lookAt
+                const currentLookAt = new THREE.Vector3();
+                camera.getWorldDirection(currentLookAt);
+                const targetDir = new THREE.Vector3().subVectors(cameraLookAtTarget, camera.position).normalize();
+                const lerpedDir = currentLookAt.lerp(targetDir, lerpSpeed);
+                camera.lookAt(camera.position.clone().add(lerpedDir));
+
+                // Animate door
+                doorAnimationState = Math.min(1, doorAnimationState + delta * 2);
+            } else {
+                // Normal follow mode (Linear Perspective)
+                // Dampen X movement to keep camera centered in hall logic
+                const camTargetX = pos.x * 0.3;
+                const camTargetY = 3.0; // Low to ground
+                const camTargetZ = pos.z + 14; // Further back
+
+                cameraTarget.set(camTargetX, camTargetY, camTargetZ);
+
+                // Look up towards the horizon/vanishing point
+                cameraLookAtTarget.set(pos.x * 0.1, 6.0, pos.z - 40);
+
+                // Smooth camera position (heavier feel)
+                camera.position.lerp(cameraTarget, 0.03);
+
+                // Smooth camera rotation
+                smoothedLookAt.lerp(cameraLookAtTarget, 0.05);
+                camera.lookAt(smoothedLookAt);
+
+                // Close door
+                doorAnimationState = Math.max(0, doorAnimationState - delta * 2);
+            }
+
+            // Animate Station Icons
+            const timeVal = Date.now() * 0.001;
+            stationIcons.forEach((icon, id) => {
+                icon.rotation.y = timeVal * 0.5; // Rotate
+                icon.position.y = 4.5 + Math.sin(timeVal * 2) * 0.1; // Float
+
+                // Specific animations
+                if (id === 'tee') { // Heart beat
+                    const scale = 1 + Math.sin(timeVal * 4) * 0.1;
+                    icon.scale.set(scale, scale, scale);
+                }
+            });
+
+            // Update Drones
+            drones.forEach(drone => {
+                if (mascot) {
+                    drone.update(delta, mascot.position);
+                }
+            });
+
+            // Update Ripples
+            updateRipples(delta);
+
+            // Apply door animation to all doors (Optional: could serve as interaction highlight)
+            ROOMS.forEach(r => {
+                const door = doors.get(r.id);
+                // For bio-stations, we might just highlight the glass or something
+                // But keeping the object reference available is good
+            });
+
+            // Update minimap
+            updateMinimap();
+
+            // Check room proximity (only if not in a room)
+            // Check room proximity and Auto-Trigger
+            if (!isAnimatingCamera && mascotParts.timerRing) {
+                let nearest = null;
+                let minDist = 999;
+
+                ROOMS.forEach(r => {
+                    if (r.markerPos) {
+                        const dist = Math.sqrt((pos.x - r.markerPos.x) ** 2 + (pos.z - r.markerPos.z) ** 2);
+                        if (dist < 2.0 && dist < minDist) {
+                            minDist = dist;
+                            nearest = r;
+                        }
+                    }
+                });
+
+                if (nearest) {
+                    if (nearest.id !== activeRoomId) {
+                        // In zone
+                        interactionTimer += delta;
+
+                        // -- Scanner Animation --
+                        if (scannerGroup) {
+                            if (!scannerGroup.visible) {
+                                scannerGroup.visible = true;
+                                audio.startScanSound();
+                            }
+                            scannerGroup.position.set(pos.x, 0.05, pos.z);
+
+                            // Animate Rotation
+                            scannerMesh.rotation.y += delta * 2;
+
+                            // Animate Scan Progress (0 to 1)
+                            const progress = Math.min(interactionTimer / INTERACTION_DURATION, 1.0);
+
+                            // Scale up beam/grid
+                            scannerMesh.scale.y = progress;
+
+                            // Update Text
+                            updateScannerText(progress * 100);
+
+                            // Blink color near completion
+                            if (progress > 0.9) {
+                                // Green flash
+                                scannerMesh.material.color.setHex(Date.now() % 200 < 100 ? 0x10b981 : 0x0ea5e9);
+                            } else {
+                                scannerMesh.material.color.setHex(0x0ea5e9);
+                            }
+                        }
+
+                        // Remove Old Ring (Plan required replacing it, but we can verify if we want both or just scanner)
+                        // Keeping ring for foot reference is fine, but scanner is the main effect now.
+                        if (mascotParts.timerRing) mascotParts.timerRing.visible = false; // Hide old ring
+
+                        if (interactionTimer >= INTERACTION_DURATION) {
+                            // Trigger
+                            console.log('Auto-triggering room:', nearest.title);
+                            showPanel(nearest);
+                            activeRoomId = nearest.id;
+
+                            // Hide Scanner
+                            scannerGroup.visible = false;
+                            audio.stopScanSound();
+
+                            // Access Granted Sound/Flash?
+                            audio.playUI('enter'); // Already played in showPanel
+                        }
+                    }
+                } else {
+                    // Out of zone
+                    interactionTimer = 0;
+                    lastScanPercent = -1;
+                    if (scannerGroup && scannerGroup.visible) {
+                        scannerGroup.visible = false;
+                        audio.stopScanSound();
+                    }
+
+                    if (mascotParts.timerRing) {
+                        mascotParts.timerRing.visible = false;
+                        mascotParts.timerRing.geometry.dispose();
+                        mascotParts.timerRing.geometry = new THREE.RingGeometry(1.2, 1.4, 32, 1, 0, 0);
+                    }
+                    if (!isAnimatingCamera) activeRoomId = null; // Reset lock if we moved away (and panel closed)
+                }
+            }
+
+            // document.getElementById('prompt').classList.toggle('show', !!nearRoom && !isAnimatingCamera); // Removed prompt
+
+            renderer.render(scene, camera);
+        }
+
+        // Global functions
+        window.startGame = () => {
+            document.getElementById('welcome').classList.remove('show');
+            audio.init();
+        };
+
+        window.showPanel = (r) => {
+            currentRoomData = r;
+            isAnimatingCamera = true;
+
+            audio.playUI('enter');
+
+            // Set camera target index into the room (adjusted for wall stations)
+            // Ideally zoom in to look AT the station
+            const isLeft = r.x < 0;
+            const lookX = isLeft ? r.x + 3 : r.x - 3;
+            cameraTarget.set(lookX, 4.5, r.z); // Position in front of station
+            cameraLookAtTarget.set(r.x, 4.5, r.z); // Look at station center
+
+            document.getElementById('r-icon').innerHTML = ICONS[r.icon] || ICONS.default;
+            document.getElementById('r-title').textContent = r.title;
+            document.getElementById('r-desc').textContent = r.desc;
+            document.getElementById('r-list').innerHTML = r.features.map(f => `<li><span class="li-icon">▶</span> ${f}</li>`).join('');
+            document.getElementById('room-panel').classList.add('show');
+
+            // Lock controls
+            keys = {};
+            isWalking = false;
+        };
+
+        window.closePanel = () => {
+            isAnimatingCamera = false;
+            currentRoomData = null;
+            interactionTimer = 0; // Reset timer
+            document.getElementById('room-panel').classList.remove('show');
+            audio.playUI('exit');
+        };
+
+        // --- Ripple & Circuit Logic ---
+        function createCircuitTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512;
+            canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            // Black bg
+            ctx.fillStyle = '#000000';
+            ctx.fillRect(0, 0, 512, 512);
+
+            ctx.strokeStyle = '#0ea5e9'; // Cyan
+            ctx.lineWidth = 4;
+            ctx.lineCap = 'round';
+            ctx.fillStyle = '#0ea5e9';
+
+            // Draw circuit lines
+            for (let i = 0; i < 20; i++) {
+                const x = Math.random() * 512;
+                const y = Math.random() * 512;
+                const len = Math.random() * 100 + 50;
+                const vertical = Math.random() > 0.5;
+
+                ctx.beginPath();
+                ctx.moveTo(x, y);
+                if (vertical) {
+                    ctx.lineTo(x, y + len);
+                    ctx.arc(x, y + len, 5, 0, Math.PI * 2);
+                } else {
+                    ctx.lineTo(x + len, y);
+                    ctx.arc(x + len, y, 5, 0, Math.PI * 2);
+                }
+                ctx.stroke();
+                ctx.fill();
+            }
+
+            // Hexagons
+            for (let i = 0; i < 5; i++) {
+                const x = Math.random() * 512;
+                const y = Math.random() * 512;
+                ctx.beginPath();
+                for (let s = 0; s < 6; s++) {
+                    const angle = s * Math.PI / 3;
+                    const hx = x + Math.cos(angle) * 30;
+                    const hy = y + Math.sin(angle) * 30;
+                    if (s === 0) ctx.moveTo(hx, hy);
+                    else ctx.lineTo(hx, hy);
+                }
+                ctx.closePath();
+                ctx.stroke();
+            }
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            return tex;
+        }
+
+        function createRipple(pos) {
+            const geo = new THREE.TorusGeometry(0.5, 0.1, 8, 32);
+            const mat = new THREE.MeshBasicMaterial({
+                color: 0x0ea5e9,
+                transparent: true,
+                opacity: 0.8,
+                side: THREE.DoubleSide
+            });
+            const mesh = new THREE.Mesh(geo, mat);
+            mesh.rotation.x = Math.PI / 2;
+            mesh.position.set(pos.x, 0.1, pos.z);
+            scene.add(mesh);
+
+            ripples.push({
+                mesh: mesh,
+                age: 0,
+                maxAge: 1.5 // Seconds
+            });
+        }
+
+        function updateRipples(delta) {
+            // Ripples
+            for (let i = ripples.length - 1; i >= 0; i--) {
+                const rip = ripples[i];
+                rip.age += delta;
+
+                // Expand
+                const scale = 1 + rip.age * 8; // Speed of expansion
+                rip.mesh.scale.set(scale, scale, 1);
+
+                // Fade
+                rip.mesh.material.opacity = 0.8 * (1 - rip.age / rip.maxAge);
+
+                // Wall Hit Check (Simulated distance)
+                // Width is ~24 total, so radius 12 hits walls
+                // Scale starts at ~1 (radius 0.5). We need radius ~12.
+                // Current Radius ~= 0.5 * scale.
+                // 12 / 0.5 = 24 scale.
+                if (scale > 20 && scale < 22) { // Just before fading out mostly
+                    wallPulseIntensity = 1.5; // Pulse!
+                }
+
+                if (rip.age >= rip.maxAge) {
+                    scene.remove(rip.mesh);
+                    rip.mesh.geometry.dispose();
+                    rip.mesh.material.dispose();
+                    ripples.splice(i, 1);
+                }
+            }
+
+            // Wall Pulse
+            if (wallPulseIntensity > 0) {
+                wallPulseIntensity -= delta * 3.0; // Decay
+                if (wallPulseIntensity < 0) wallPulseIntensity = 0;
+
+                wallMeshes.forEach(mesh => {
+                    mesh.material.emissiveIntensity = wallPulseIntensity;
+                });
+            }
+        }
+
+        // Start
+        init();
+    </script>
+</body>
+
+</html>
